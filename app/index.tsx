@@ -12,6 +12,7 @@ import { Stack } from "expo-router";
 import ProductSearch from "./components/ProductSearch";
 import POSCart from "./components/POSCart";
 import CheckoutModal from "./components/CheckoutModal";
+import PrinterModal from "./components/PrinterModal";
 import BottomNavigation from "./components/BottomNavigation";
 import {
   getProducts,
@@ -26,9 +27,16 @@ import { generateId } from "./utils/helpers";
 export default function POSScreen() {
   const router = useRouter();
   const [isCheckoutModalVisible, setIsCheckoutModalVisible] = useState(false);
+  const [isPrintModalVisible, setIsPrintModalVisible] = useState(false);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [printData, setPrintData] = useState<{
+    customerInfo: any;
+    items: CartItem[];
+    total: number;
+    paymentMethod: string;
+  }>({ customerInfo: {}, items: [], total: 0, paymentMethod: "" });
 
   useEffect(() => {
     loadProducts();
@@ -113,6 +121,11 @@ export default function POSScreen() {
     setIsCheckoutModalVisible(true);
   };
 
+  // Calculate total
+  const calculateTotal = () => {
+    return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  };
+
   // Complete transaction
   const completeTransaction = async (
     customerInfo,
@@ -121,10 +134,7 @@ export default function POSScreen() {
   ) => {
     try {
       // Calculate total
-      const total = cartItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0,
-      );
+      const total = calculateTotal();
 
       // Create transaction object
       const transaction = {
@@ -230,8 +240,24 @@ export default function POSScreen() {
       <CheckoutModal
         isVisible={isCheckoutModalVisible}
         cartItems={cartItems}
+        activeRoute="/"
         onClose={() => setIsCheckoutModalVisible(false)}
         onConfirmPayment={completeTransaction}
+        onPrint={(customerInfo, items, total, paymentMethod) => {
+          setIsPrintModalVisible(true);
+          setPrintData({ customerInfo, items, total, paymentMethod });
+        }}
+      />
+
+      {/* Printer Modal */}
+      <PrinterModal
+        isVisible={isPrintModalVisible}
+        onClose={() => setIsPrintModalVisible(false)}
+        customerInfo={printData.customerInfo}
+        items={printData.items}
+        total={printData.total}
+        paymentMethod={printData.paymentMethod}
+        isPurchase={false}
       />
 
       {/* Bottom Navigation */}

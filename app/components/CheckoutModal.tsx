@@ -33,10 +33,17 @@ interface CheckoutModalProps {
   isVisible?: boolean;
   onClose?: () => void;
   cartItems?: CartItem[];
+  activeRoute?: string;
   onConfirmPayment?: (
     customerInfo: CustomerInfo,
     paymentMethod: string,
     paymentDetails?: PaymentDetails,
+  ) => void;
+  onPrint?: (
+    customerInfo: CustomerInfo,
+    items: CartItem[],
+    total: number,
+    paymentMethod: string,
   ) => void;
 }
 
@@ -44,7 +51,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isVisible = true,
   onClose = () => {},
   cartItems = [],
+  activeRoute = "/",
   onConfirmPayment = () => {},
+  onPrint = () => {},
 }) => {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: "",
@@ -86,10 +95,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (!customerInfo.name) {
       Alert.alert(
         "Error",
-        typeof window !== "undefined" &&
-          window.location &&
-          window.location.pathname &&
-          window.location.pathname.includes("/purchases")
+        activeRoute === "/purchases"
           ? "Nama supplier harus diisi"
           : "Nama pelanggan harus diisi",
       );
@@ -178,10 +184,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {/* Customer Information */}
             <View className="mb-6">
               <Text className="text-lg font-semibold mb-3">
-                {typeof window !== "undefined" &&
-                window.location &&
-                window.location.pathname &&
-                window.location.pathname.includes("/purchases")
+                {activeRoute === "/purchases"
                   ? "Informasi Supplier"
                   : "Informasi Pelanggan"}
               </Text>
@@ -191,10 +194,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <TextInput
                     className="border border-gray-300 rounded-lg p-3 bg-gray-50"
                     placeholder={
-                      typeof window !== "undefined" &&
-                      window.location &&
-                      window.location.pathname &&
-                      window.location.pathname.includes("/purchases")
+                      activeRoute === "/purchases"
                         ? "Masukkan nama supplier"
                         : "Masukkan nama pelanggan"
                     }
@@ -347,19 +347,37 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
               </View>
             </View>
           </ScrollView>
-          {/* Confirm Button */}
-          <TouchableOpacity
-            className={`py-4 rounded-lg ${!customerInfo.name || !selectedPaymentMethod ? "bg-gray-300" : "bg-blue-500"}`}
-            disabled={!customerInfo.name || !selectedPaymentMethod}
-            onPress={handleConfirmPayment}
-            accessibilityLabel="Konfirmasi Pembayaran"
-            accessibilityHint="Menyelesaikan proses pembayaran"
-          >
-            <Text className="text-white text-center font-bold">
-              Konfirmasi Pembayaran
-            </Text>
-          </TouchableOpacity>
-          <></>
+          {/* Buttons */}
+          <View className="flex-row space-x-2">
+            <TouchableOpacity
+              className={`flex-1 py-4 rounded-lg ${!customerInfo.name || !selectedPaymentMethod ? "bg-gray-300" : "bg-blue-500"}`}
+              disabled={!customerInfo.name || !selectedPaymentMethod}
+              onPress={handleConfirmPayment}
+              accessibilityLabel="Konfirmasi Pembayaran"
+              accessibilityHint="Menyelesaikan proses pembayaran"
+            >
+              <Text className="text-white text-center font-bold">
+                Konfirmasi Pembayaran
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="py-4 px-4 rounded-lg bg-green-500"
+              onPress={() =>
+                onPrint(
+                  customerInfo,
+                  cartItems,
+                  calculateTotal(),
+                  selectedPaymentMethod,
+                )
+              }
+              disabled={!customerInfo.name}
+              accessibilityLabel="Cetak Struk"
+              accessibilityHint="Mencetak struk transaksi"
+            >
+              <Text className="text-white text-center font-bold">Cetak</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>

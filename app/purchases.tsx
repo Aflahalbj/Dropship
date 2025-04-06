@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { Stack } from "expo-router";
 import BottomNavigation from "./components/BottomNavigation";
-import { ShoppingCart, Search, Plus } from "lucide-react-native";
+import { ShoppingCart, Search, Plus, Printer } from "lucide-react-native";
 import {
   getProducts,
   getPurchases,
@@ -22,6 +22,7 @@ import {
   Product,
   Purchase,
   PurchaseItem,
+  CartItem,
 } from "./utils/storage";
 import { generateId, formatCurrency } from "./utils/helpers";
 import ProductSearch from "./components/ProductSearch";
@@ -33,9 +34,16 @@ export default function PurchasesScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCheckoutModalVisible, setIsCheckoutModalVisible] = useState(false);
+  const [isPrintModalVisible, setIsPrintModalVisible] = useState(false);
   const [currentCapital, setCurrentCapital] = useState(0);
   const [cartItems, setCartItems] = useState<PurchaseItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [printData, setPrintData] = useState<{
+    customerInfo: any;
+    items: CartItem[];
+    total: number;
+    paymentMethod: string;
+  }>({ customerInfo: {}, items: [], total: 0, paymentMethod: "" });
 
   useEffect(() => {
     loadData();
@@ -272,8 +280,24 @@ export default function PurchasesScreen() {
       <CheckoutModal
         isVisible={isCheckoutModalVisible}
         cartItems={cartItems}
+        activeRoute="/purchases"
         onClose={() => setIsCheckoutModalVisible(false)}
         onConfirmPayment={completePurchase}
+        onPrint={(customerInfo, items, total, paymentMethod) => {
+          setIsPrintModalVisible(true);
+          setPrintData({ customerInfo, items, total, paymentMethod });
+        }}
+      />
+
+      {/* Printer Modal */}
+      <PrinterModal
+        isVisible={isPrintModalVisible}
+        onClose={() => setIsPrintModalVisible(false)}
+        customerInfo={printData.customerInfo}
+        items={printData.items}
+        total={printData.total}
+        paymentMethod={printData.paymentMethod}
+        isPurchase={true}
       />
 
       {/* Bottom Navigation */}
