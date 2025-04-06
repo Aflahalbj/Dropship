@@ -53,13 +53,15 @@ const ProductSearch = ({
       onPress={() => onProductSelect(item)}
     >
       {item.image ? (
-        <Image
-          source={{ uri: item.image }}
-          className="w-full h-16 rounded-md mb-2"
-          resizeMode="cover"
-        />
+        <View className="aspect-square w-full rounded-md mb-2 overflow-hidden">
+          <Image
+            source={{ uri: item.image }}
+            className="w-full h-full"
+            resizeMode="cover"
+          />
+        </View>
       ) : (
-        <View className="w-full h-16 bg-gray-200 rounded-md mb-2 items-center justify-center">
+        <View className="aspect-square w-full bg-gray-200 rounded-md mb-2 items-center justify-center">
           <Text className="text-gray-500 text-xs">Tidak ada gambar</Text>
         </View>
       )}

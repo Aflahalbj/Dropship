@@ -70,7 +70,7 @@ export interface Capital {
   id: string;
   date: string;
   amount: number;
-  type: "initial" | "addition" | "withdrawal" | "sale" | "purchase";
+  type: "initial" | "addition" | "withdrawal" | "sale" | "purchase" | "expense";
   description: string;
 }
 
@@ -217,7 +217,11 @@ export const getCurrentCapital = async (): Promise<number> => {
       item.type === "sale"
     ) {
       return total + item.amount;
-    } else if (item.type === "withdrawal" || item.type === "purchase") {
+    } else if (
+      item.type === "withdrawal" ||
+      item.type === "purchase" ||
+      item.type === "expense"
+    ) {
       return total - item.amount;
     }
     return total;

@@ -14,7 +14,7 @@ import {
 import { Stack } from "expo-router";
 import BottomNavigation from "./components/BottomNavigation";
 import { Search, Plus, X, Calendar } from "lucide-react-native";
-import { getExpenses, addExpense, Expense } from "./utils/storage";
+import { getExpenses, addExpense, addCapital, Expense } from "./utils/storage";
 import { formatCurrency, formatDate, generateId } from "./utils/helpers";
 
 export default function ExpensesScreen() {
@@ -70,6 +70,15 @@ export default function ExpensesScreen() {
 
     const success = await addExpense(newExpense);
     if (success) {
+      // Record capital transaction (reduce capital for expense)
+      await addCapital({
+        id: generateId(),
+        date: new Date().toISOString(),
+        amount: newExpense.amount,
+        type: "expense",
+        description: `Pengeluaran: ${newExpense.category} - ${newExpense.description}`,
+      });
+
       setExpenses([...expenses, newExpense]);
       setIsModalVisible(false);
       setFormData({

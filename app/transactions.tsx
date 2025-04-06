@@ -17,21 +17,27 @@ import {
   ChevronRight,
   ShoppingCart,
   DollarSign,
+  Receipt,
 } from "lucide-react-native";
 import {
   getTransactions,
   getPurchases,
+  getExpenses,
   Transaction,
   Purchase,
+  Expense,
 } from "./utils/storage";
 import { formatCurrency, formatDateTime } from "./utils/helpers";
 
 export default function TransactionsScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"sales" | "purchases">("sales");
+  const [activeTab, setActiveTab] = useState<
+    "sales" | "purchases" | "expenses"
+  >("sales");
 
   useEffect(() => {
     loadData();
@@ -53,6 +59,13 @@ export default function TransactionsScreen() {
     });
     setPurchases(sortedPurchasesData);
 
+    // Load expense transactions
+    const expensesData = await getExpenses();
+    const sortedExpensesData = [...expensesData].sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+    setExpenses(sortedExpensesData);
+
     setIsLoading(false);
   };
 
@@ -70,6 +83,13 @@ export default function TransactionsScreen() {
     (purchase) =>
       purchase.supplierName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       purchase.id.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
+
+  // Filter expenses based on search query
+  const filteredExpenses = expenses.filter(
+    (expense) =>
+      expense.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      expense.description.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Render transaction item
@@ -103,6 +123,30 @@ export default function TransactionsScreen() {
                   : "Dibatalkan"}
             </Text>
           </View>
+        </View>
+        <ChevronRight size={20} color="#9CA3AF" />
+      </View>
+    </TouchableOpacity>
+  );
+
+  // Render expense item
+  const renderExpenseItem = ({ item }: { item: Expense }) => (
+    <TouchableOpacity
+      className="p-4 border-b border-gray-200 bg-white"
+      onPress={() => {}}
+    >
+      <View className="flex-row justify-between items-center">
+        <View>
+          <Text className="font-medium text-gray-800">{item.category}</Text>
+          <Text className="text-gray-500 text-sm">
+            {formatDateTime(item.date)}
+          </Text>
+          <Text className="text-gray-600 text-sm">{item.description}</Text>
+        </View>
+        <View className="items-end">
+          <Text className="font-bold text-red-500">
+            -{formatCurrency(item.amount)}
+          </Text>
         </View>
         <ChevronRight size={20} color="#9CA3AF" />
       </View>
@@ -186,7 +230,7 @@ export default function TransactionsScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            className={`flex-1 flex-row items-center justify-center py-2 ${activeTab === "purchases" ? "bg-blue-500" : "bg-gray-200"} rounded-r-lg`}
+            className={`flex-1 flex-row items-center justify-center py-2 ${activeTab === "purchases" ? "bg-blue-500" : "bg-gray-200"}`}
             onPress={() => setActiveTab("purchases")}
           >
             <ShoppingCart
@@ -197,6 +241,21 @@ export default function TransactionsScreen() {
               className={`ml-2 ${activeTab === "purchases" ? "text-white font-medium" : "text-gray-700"}`}
             >
               Pembelian
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className={`flex-1 flex-row items-center justify-center py-2 ${activeTab === "expenses" ? "bg-blue-500" : "bg-gray-200"} rounded-r-lg`}
+            onPress={() => setActiveTab("expenses")}
+          >
+            <Receipt
+              size={16}
+              color={activeTab === "expenses" ? "#FFFFFF" : "#4B5563"}
+            />
+            <Text
+              className={`ml-2 ${activeTab === "expenses" ? "text-white font-medium" : "text-gray-700"}`}
+            >
+              Pengeluaran
             </Text>
           </TouchableOpacity>
         </View>
@@ -232,7 +291,7 @@ export default function TransactionsScreen() {
               </View>
             }
           />
-        ) : (
+        ) : activeTab === "purchases" ? (
           <FlatList
             data={filteredPurchases}
             renderItem={renderPurchaseItem}
@@ -244,6 +303,22 @@ export default function TransactionsScreen() {
                   {isLoading
                     ? "Memuat transaksi..."
                     : "Tidak ada transaksi pembelian ditemukan"}
+                </Text>
+              </View>
+            }
+          />
+        ) : (
+          <FlatList
+            data={filteredExpenses}
+            renderItem={renderExpenseItem}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              <View className="items-center justify-center p-8">
+                <Text className="text-gray-400 mt-4 text-center">
+                  {isLoading
+                    ? "Memuat transaksi..."
+                    : "Tidak ada pengeluaran ditemukan"}
                 </Text>
               </View>
             }

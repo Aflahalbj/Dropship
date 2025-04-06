@@ -204,10 +204,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   />
                 </View>
                 <View>
-                  <Text className="text-gray-600 mb-1">Alamat</Text>
+                  <Text className="text-gray-600 mb-1">Alamat (Opsional)</Text>
                   <TextInput
                     className="border border-gray-300 rounded-lg p-3 bg-gray-50"
-                    placeholder="Masukkan alamat (opsional)"
+                    placeholder="Masukkan alamat"
                     multiline
                     numberOfLines={2}
                     value={customerInfo.address}
@@ -340,12 +340,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </ScrollView>
           {/* Confirm Button */}
           <TouchableOpacity
-            className={`py-4 rounded-lg ${!customerInfo.name || !customerInfo.phone || !selectedPaymentMethod ? "bg-gray-300" : "bg-blue-500"}`}
-            disabled={
-              !customerInfo.name ||
-              !customerInfo.phone ||
-              !selectedPaymentMethod
-            }
+            className={`py-4 rounded-lg ${!customerInfo.name || !selectedPaymentMethod ? "bg-gray-300" : "bg-blue-500"}`}
+            disabled={!customerInfo.name || !selectedPaymentMethod}
             onPress={handleConfirmPayment}
             accessibilityLabel="Konfirmasi Pembayaran"
             accessibilityHint="Menyelesaikan proses pembayaran"
