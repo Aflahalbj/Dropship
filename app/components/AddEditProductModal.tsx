@@ -32,6 +32,7 @@ const AddEditProductModal: React.FC<AddEditProductModalProps> = ({
     price: 0,
     stock: 0,
     supplier: "",
+    supplierPrice: 0,
     image: "",
   });
 
@@ -53,6 +54,7 @@ const AddEditProductModal: React.FC<AddEditProductModalProps> = ({
         price: 0,
         stock: 0,
         supplier: "",
+        supplierPrice: 0,
         image: "",
       });
     }
@@ -201,6 +203,20 @@ const AddEditProductModal: React.FC<AddEditProductModalProps> = ({
                   placeholder="Masukkan nama supplier"
                   value={formData.supplier}
                   onChangeText={(text) => handleInputChange("supplier", text)}
+                />
+              </View>
+
+              {/* Harga Supplier */}
+              <View>
+                <Text className="text-gray-600 mb-1">Harga Supplier</Text>
+                <TextInput
+                  className="border border-gray-300 rounded-lg p-3 bg-gray-50"
+                  placeholder="Masukkan harga dari supplier"
+                  keyboardType="numeric"
+                  value={formData.supplierPrice?.toString() || "0"}
+                  onChangeText={(text) =>
+                    handleInputChange("supplierPrice", parseInt(text) || 0)
+                  }
                 />
               </View>
 

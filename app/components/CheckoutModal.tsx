@@ -86,7 +86,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (!customerInfo.name) {
       Alert.alert(
         "Error",
-        window.location.pathname.includes("/purchases")
+        typeof window !== "undefined" &&
+          window.location &&
+          window.location.pathname &&
+          window.location.pathname.includes("/purchases")
           ? "Nama supplier harus diisi"
           : "Nama pelanggan harus diisi",
       );
@@ -175,7 +178,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {/* Customer Information */}
             <View className="mb-6">
               <Text className="text-lg font-semibold mb-3">
-                {window.location.pathname.includes("/purchases")
+                {typeof window !== "undefined" &&
+                window.location &&
+                window.location.pathname &&
+                window.location.pathname.includes("/purchases")
                   ? "Informasi Supplier"
                   : "Informasi Pelanggan"}
               </Text>
@@ -185,6 +191,9 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   <TextInput
                     className="border border-gray-300 rounded-lg p-3 bg-gray-50"
                     placeholder={
+                      typeof window !== "undefined" &&
+                      window.location &&
+                      window.location.pathname &&
                       window.location.pathname.includes("/purchases")
                         ? "Masukkan nama supplier"
                         : "Masukkan nama pelanggan"

@@ -8,7 +8,7 @@ import {
   FlatList,
   TextInput,
 } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import BottomNavigation from "./components/BottomNavigation";
 import {
   Search,
@@ -30,6 +30,7 @@ import {
 import { formatCurrency, formatDateTime } from "./utils/helpers";
 
 export default function TransactionsScreen() {
+  const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -96,7 +97,7 @@ export default function TransactionsScreen() {
   const renderTransactionItem = ({ item }: { item: Transaction }) => (
     <TouchableOpacity
       className="p-4 border-b border-gray-200 bg-white"
-      onPress={() => {}}
+      onPress={() => router.push(`/receipt?transactionId=${item.id}`)}
     >
       <View className="flex-row justify-between items-center">
         <View>

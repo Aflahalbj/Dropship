@@ -16,7 +16,12 @@ import {
   DollarSign,
   Package,
 } from "lucide-react-native";
-import { getTransactions, getExpenses, getProducts } from "./utils/storage";
+import {
+  getTransactions,
+  getExpenses,
+  getProducts,
+  getCapital,
+} from "./utils/storage";
 import { formatCurrency } from "./utils/helpers";
 
 export default function ReportsScreen() {
@@ -26,10 +31,45 @@ export default function ReportsScreen() {
   const [totalProducts, setTotalProducts] = useState(0);
   const [lowStockProducts, setLowStockProducts] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [monthlySales, setMonthlySales] = useState<
+    { month: string; amount: number }[]
+  >([]);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const calculateMonthlySales = (transactions) => {
+    const monthlyData = {};
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "Mei",
+      "Jun",
+      "Jul",
+      "Agu",
+      "Sep",
+      "Okt",
+      "Nov",
+      "Des",
+    ];
+
+    // Initialize all months with zero
+    months.forEach((month, index) => {
+      monthlyData[month] = 0;
+    });
+
+    // Sum up sales by month
+    transactions.forEach((transaction) => {
+      const date = new Date(transaction.date);
+      const month = months[date.getMonth()];
+      monthlyData[month] += transaction.total;
+    });
+
+    // Convert to array format for the chart
+    return Object.keys(monthlyData).map((month) => ({
+      month,
+      amount: monthlyData[month],
+    }));
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -44,6 +84,10 @@ export default function ReportsScreen() {
       0,
     );
     setSalesTotal(totalSales);
+
+    // Calculate monthly sales for chart
+    const monthlyData = calculateMonthlySales(completedTransactions);
+    setMonthlySales(monthlyData);
 
     // Load expenses
     const expenses = await getExpenses();
@@ -60,6 +104,10 @@ export default function ReportsScreen() {
 
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const ReportCard = ({ title, value, icon, color }) => (
     <View className={`bg-white rounded-xl p-4 shadow-sm border-l-4 ${color}`}>
@@ -140,14 +188,35 @@ export default function ReportsScreen() {
               </View>
             </View>
 
-            {/* Chart Placeholder */}
+            {/* Sales Chart */}
             <View className="mb-6">
               <Text className="text-lg font-bold mb-3">Grafik Penjualan</Text>
-              <View className="bg-white rounded-xl p-6 items-center justify-center h-60 shadow-sm">
-                <BarChart3 size={48} color="#D1D5DB" />
-                <Text className="text-gray-400 mt-4 text-center">
-                  Grafik penjualan akan ditampilkan di sini
+              <View className="bg-white rounded-xl p-6 shadow-sm">
+                <Text className="text-gray-700 font-medium mb-4">
+                  Penjualan Bulanan
                 </Text>
+                <View className="flex-row h-40 items-end justify-between">
+                  {monthlySales.map((item, index) => {
+                    // Calculate bar height as percentage of maximum value (max height 150)
+                    const maxValue = Math.max(
+                      ...monthlySales.map((i) => i.amount),
+                    );
+                    const height =
+                      maxValue > 0 ? (item.amount / maxValue) * 150 : 0;
+
+                    return (
+                      <View key={index} className="items-center">
+                        <View
+                          style={{ height: Math.max(height, 5) }}
+                          className={`w-6 ${item.amount > 0 ? "bg-blue-500" : "bg-gray-200"} rounded-t-sm`}
+                        />
+                        <Text className="text-xs text-gray-500 mt-1">
+                          {item.month}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
               </View>
             </View>
           </>

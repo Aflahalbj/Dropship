@@ -79,7 +79,7 @@ export default function PurchasesScreen() {
         {
           id: product.id,
           name: product.name,
-          price: product.price,
+          price: product.supplierPrice || product.price,
           quantity: 1,
           sku: product.sku,
           supplier: product.supplier || "",

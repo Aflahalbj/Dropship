@@ -8,6 +8,7 @@ export interface Product {
   price: number;
   stock: number;
   supplier: string;
+  supplierPrice?: number;
   image?: string;
 }
 
@@ -241,6 +242,7 @@ export const initializeData = async () => {
         price: 150000,
         stock: 25,
         supplier: "Supplier A",
+        supplierPrice: 120000,
         image:
           "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=200&q=80",
       },
@@ -251,6 +253,7 @@ export const initializeData = async () => {
         price: 299000,
         stock: 15,
         supplier: "Supplier B",
+        supplierPrice: 240000,
         image:
           "https://images.unsplash.com/photo-1542272604-787c3835535d?w=200&q=80",
       },
@@ -261,6 +264,7 @@ export const initializeData = async () => {
         price: 450000,
         stock: 10,
         supplier: "Supplier C",
+        supplierPrice: 350000,
         image:
           "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=200&q=80",
       },
@@ -271,6 +275,7 @@ export const initializeData = async () => {
         price: 350000,
         stock: 20,
         supplier: "Supplier A",
+        supplierPrice: 280000,
         image:
           "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=200&q=80",
       },
@@ -281,6 +286,7 @@ export const initializeData = async () => {
         price: 75000,
         stock: 30,
         supplier: "Supplier B",
+        supplierPrice: 50000,
         image:
           "https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=200&q=80",
       },

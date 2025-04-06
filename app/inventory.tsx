@@ -115,6 +115,9 @@ export default function InventoryScreen() {
         <Text className="text-gray-500 text-sm">
           Supplier: {item.supplier || "-"}
         </Text>
+        <Text className="text-gray-500 text-sm">
+          Harga Supplier: {formatCurrency(item.supplierPrice || 0)}
+        </Text>
       </View>
       <View className="items-end">
         <Text className="font-medium text-gray-800">
