@@ -8,8 +8,16 @@ import {
   Modal,
   Alert,
 } from "react-native";
-import { X, CreditCard, Wallet, DollarSign, Check } from "lucide-react-native";
-import { CartItem } from "../utils/storage";
+import {
+  X,
+  CreditCard,
+  Wallet,
+  DollarSign,
+  Check,
+  Plus,
+  Minus,
+} from "lucide-react-native";
+import { CartItem, PurchaseItem } from "../utils/storage";
 import { formatCurrency } from "../utils/helpers";
 
 interface CustomerInfo {
@@ -32,16 +40,17 @@ interface PaymentMethod {
 interface CheckoutModalProps {
   isVisible?: boolean;
   onClose?: () => void;
-  cartItems?: CartItem[];
+  cartItems?: CartItem[] | PurchaseItem[];
   activeRoute?: string;
   onConfirmPayment?: (
     customerInfo: CustomerInfo,
     paymentMethod: string,
     paymentDetails?: PaymentDetails,
+    updatedItems?: CartItem[] | PurchaseItem[],
   ) => void;
   onPrint?: (
     customerInfo: CustomerInfo,
-    items: CartItem[],
+    items: CartItem[] | PurchaseItem[],
     total: number,
     paymentMethod: string,
   ) => void;
@@ -50,11 +59,19 @@ interface CheckoutModalProps {
 const CheckoutModal: React.FC<CheckoutModalProps> = ({
   isVisible = true,
   onClose = () => {},
-  cartItems = [],
+  cartItems: initialCartItems = [],
   activeRoute = "/",
   onConfirmPayment = () => {},
   onPrint = () => {},
 }) => {
+  const [cartItems, setCartItems] = useState<CartItem[] | PurchaseItem[]>([]);
+
+  // Initialize cart items when modal opens
+  useEffect(() => {
+    if (isVisible) {
+      setCartItems([...initialCartItems]);
+    }
+  }, [isVisible, initialCartItems]);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: "",
     phone: "",
@@ -89,6 +106,31 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       (total, item) => total + item.price * item.quantity,
       0,
     );
+  };
+
+  // Handle quantity change for cart items
+  const handleQuantityChange = (itemId: string, change: number) => {
+    setCartItems((prevItems) => {
+      return prevItems.map((item) => {
+        if (item.id === itemId) {
+          const newQuantity = item.quantity + change;
+          // Ensure quantity is at least 1
+          if (
+            activeRoute === "/" &&
+            "stock" in item &&
+            newQuantity > item.stock
+          ) {
+            Alert.alert(
+              "Batas Stok",
+              `Hanya tersedia ${item.stock} item dalam stok`,
+            );
+            return item;
+          }
+          return { ...item, quantity: Math.max(1, newQuantity) };
+        }
+        return item;
+      });
+    });
   };
 
   const validateForm = () => {
@@ -127,46 +169,61 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const handleConfirmPayment = () => {
     if (validateForm()) {
-      // For cash payments, ensure sufficient cash is provided
-      if (selectedPaymentMethod === "cash") {
-        const cashAmount = parseFloat(cashReceived);
-        const total = calculateTotal();
+      try {
+        // For cash payments, ensure sufficient cash is provided
+        if (selectedPaymentMethod === "cash") {
+          const cashAmount = parseFloat(cashReceived);
+          const total = calculateTotal();
 
-        if (isNaN(cashAmount)) {
-          Alert.alert(
-            "Error",
-            "Jumlah uang yang diterima harus diisi dengan angka",
+          if (isNaN(cashAmount)) {
+            Alert.alert(
+              "Error",
+              "Jumlah uang yang diterima harus diisi dengan angka",
+            );
+            return;
+          }
+
+          if (cashAmount < total) {
+            Alert.alert(
+              "Error",
+              "Jumlah uang yang diterima kurang dari total belanja",
+            );
+            return;
+          }
+
+          // Call the onConfirmPayment function with customer info, payment method, payment details, and updated cart items
+          onConfirmPayment(
+            customerInfo,
+            selectedPaymentMethod,
+            {
+              cashReceived: cashAmount,
+              change: change,
+            },
+            cartItems,
           );
-          return;
+        } else {
+          // For non-cash payments, pass customer info, payment method, and updated cart items
+          onConfirmPayment(
+            customerInfo,
+            selectedPaymentMethod,
+            undefined,
+            cartItems,
+          );
         }
 
-        if (cashAmount < total) {
-          Alert.alert(
-            "Error",
-            "Jumlah uang yang diterima kurang dari total belanja",
-          );
-          return;
-        }
-
-        // Call the onConfirmPayment function with customer info, payment method, and payment details
-        onConfirmPayment(customerInfo, selectedPaymentMethod, {
-          cashReceived: cashAmount,
-          change: change,
+        // Reset form data after successful submission
+        setCustomerInfo({
+          name: "",
+          phone: "",
+          address: "",
         });
-      } else {
-        // For non-cash payments, just pass customer info and payment method
-        onConfirmPayment(customerInfo, selectedPaymentMethod);
+        setSelectedPaymentMethod("");
+        setCashReceived("");
+        setChange(0);
+      } catch (error) {
+        console.error("Error in handleConfirmPayment:", error);
+        Alert.alert("Error", "Terjadi kesalahan saat memproses pembayaran");
       }
-
-      // Reset form data after successful submission
-      setCustomerInfo({
-        name: "",
-        phone: "",
-        address: "",
-      });
-      setSelectedPaymentMethod("");
-      setCashReceived("");
-      setChange(0);
     }
   };
 
@@ -176,9 +233,34 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         <View className="bg-white rounded-t-3xl p-5 h-[80%]">
           <View className="flex-row justify-between items-center mb-4">
             <Text className="text-xl font-bold">Pembayaran</Text>
-            <TouchableOpacity onPress={onClose} className="p-2">
-              <X size={24} color="#000" />
-            </TouchableOpacity>
+            <View className="flex-row">
+              <TouchableOpacity
+                onPress={() => {
+                  onClose();
+                  // Return to product screen with FAB visible
+                  const { DeviceEventEmitter } = require("react-native");
+                  DeviceEventEmitter.emit("showFloatingCart");
+                }}
+                className="p-2 mr-2"
+              >
+                <Text className="text-blue-500 font-medium">
+                  Kembali ke Produk
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  // Reset cart items to initial state first
+                  setCartItems([]);
+                  onClose();
+                  // Hide FAB when closing with X button
+                  const { DeviceEventEmitter } = require("react-native");
+                  DeviceEventEmitter.emit("hideFloatingCart");
+                }}
+                className="p-2"
+              >
+                <X size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
           </View>
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Customer Information */}
@@ -328,20 +410,90 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 {cartItems.map((item) => (
                   <View
                     key={item.id}
-                    className="flex-row justify-between py-2 border-b border-gray-200"
+                    className="flex-row justify-between py-2 border-b border-gray-200 items-center"
                   >
-                    <Text className="flex-1">
-                      {item.name} x{item.quantity}
-                    </Text>
-                    <Text>
-                      Rp {(item.price * item.quantity).toLocaleString()}
+                    <View className="flex-1">
+                      <Text className="font-medium">{item.name}</Text>
+                      <Text className="text-gray-500 text-sm">
+                        {formatCurrency(item.price)} per item
+                      </Text>
+                      {"stock" in item && (
+                        <Text className="text-gray-500 text-sm">
+                          Stok: {item.stock}
+                        </Text>
+                      )}
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        // Remove item from cart
+                        setCartItems(
+                          cartItems.filter(
+                            (cartItem) => cartItem.id !== item.id,
+                          ),
+                        );
+                      }}
+                      className="mr-2 bg-red-100 w-8 h-8 rounded-full items-center justify-center"
+                    >
+                      <X size={16} color="#EF4444" />
+                    </TouchableOpacity>
+
+                    <View className="flex-row items-center mr-3">
+                      <TouchableOpacity
+                        onPress={() => handleQuantityChange(item.id, -1)}
+                        className="bg-gray-100 w-8 h-8 rounded-full items-center justify-center"
+                      >
+                        <Minus size={16} color="#4B5563" />
+                      </TouchableOpacity>
+
+                      <TextInput
+                        className="mx-2 min-w-8 text-center border-b border-gray-300"
+                        value={item.quantity.toString()}
+                        keyboardType="numeric"
+                        onChangeText={(text) => {
+                          const newQuantity = parseInt(text);
+                          if (!isNaN(newQuantity) && newQuantity > 0) {
+                            if (
+                              activeRoute === "/" &&
+                              "stock" in item &&
+                              newQuantity > item.stock
+                            ) {
+                              Alert.alert(
+                                "Batas Stok",
+                                `Hanya tersedia ${item.stock} item dalam stok`,
+                              );
+                              return;
+                            }
+                            // Directly set the new quantity instead of calculating a difference
+                            setCartItems((prevItems) => {
+                              return prevItems.map((prevItem) => {
+                                if (prevItem.id === item.id) {
+                                  return { ...prevItem, quantity: newQuantity };
+                                }
+                                return prevItem;
+                              });
+                            });
+                          }
+                        }}
+                      />
+
+                      <TouchableOpacity
+                        onPress={() => handleQuantityChange(item.id, 1)}
+                        className="bg-gray-100 w-8 h-8 rounded-full items-center justify-center"
+                      >
+                        <Plus size={16} color="#4B5563" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <Text className="font-medium text-gray-800 min-w-20 text-right">
+                      {formatCurrency(item.price * item.quantity)}
                     </Text>
                   </View>
                 ))}
                 <View className="flex-row justify-between py-3 mt-2">
                   <Text className="font-bold">Total</Text>
                   <Text className="font-bold">
-                    Rp {calculateTotal().toLocaleString()}
+                    {formatCurrency(calculateTotal())}
                   </Text>
                 </View>
               </View>

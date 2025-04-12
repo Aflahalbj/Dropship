@@ -54,8 +54,22 @@ const POSCart = ({
     }
   };
 
+  // Calculate dynamic height based on number of items
+  const getCartHeight = () => {
+    if (items.length === 0) return "h-[200px]";
+    const baseHeight = 200; // Base height for empty cart
+    const itemHeight = 80; // Approximate height per item
+    const maxHeight = 500; // Maximum height
+
+    const calculatedHeight = Math.min(
+      baseHeight + items.length * itemHeight,
+      maxHeight,
+    );
+    return `h-[${calculatedHeight}px]`;
+  };
+
   return (
-    <View className="bg-white rounded-xl shadow-md h-full">
+    <View className="bg-white rounded-xl shadow-md flex-1 max-h-[500px]">
       <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
         <View className="flex-row items-center">
           <ShoppingCart size={20} color="#4B5563" />

@@ -9,8 +9,9 @@ import {
   TextInput,
   Alert,
 } from "react-native";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import BottomNavigation from "./components/BottomNavigation";
+import PrinterModal from "./components/PrinterModal";
 import { ShoppingCart, Search, Plus, Printer } from "lucide-react-native";
 import {
   getProducts,
@@ -30,6 +31,7 @@ import POSCart from "./components/POSCart";
 import CheckoutModal from "./components/CheckoutModal";
 
 export default function PurchasesScreen() {
+  const router = useRouter();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -66,7 +68,16 @@ export default function PurchasesScreen() {
   const handleSearch = (text: string) => {
     setSearchQuery(text);
     // Filter purchases based on search query
-    // This will be implemented in the next phase
+    if (text.trim() === "") {
+      // If search is empty, show all purchases
+      loadData();
+    } else {
+      // Filter purchases based on search query
+      const filteredPurchases = purchases.filter((purchase) =>
+        purchase.supplierName.toLowerCase().includes(text.toLowerCase()),
+      );
+      setPurchases(filteredPurchases);
+    }
   };
 
   // Add product to cart
@@ -87,7 +98,7 @@ export default function PurchasesScreen() {
         {
           id: product.id,
           name: product.name,
-          price: product.supplierPrice || product.price,
+          price: product.supplierPrice || 0, // Use supplier price for purchases
           quantity: 1,
           sku: product.sku,
           supplier: product.supplier || "",
@@ -137,9 +148,16 @@ export default function PurchasesScreen() {
     supplierInfo,
     paymentMethod,
     paymentDetails,
+    updatedItems,
   ) => {
+    // Use updated items from checkout if available
+    const itemsToUse = updatedItems || cartItems;
     try {
-      const total = calculateTotal();
+      // Calculate total based on updated items
+      const total = itemsToUse.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      );
 
       // Check if there's enough capital
       if (total > currentCapital) {
@@ -155,8 +173,11 @@ export default function PurchasesScreen() {
         id: generateId(),
         date: new Date().toISOString(),
         supplierName: supplierInfo.name,
-        items: cartItems,
-        total,
+        items: itemsToUse,
+        total: itemsToUse.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0,
+        ), // Recalculate total with updated quantities
         status: "completed",
       };
 
@@ -164,8 +185,8 @@ export default function PurchasesScreen() {
       const success = await addPurchase(purchase);
 
       if (success) {
-        // Update product stock
-        for (const item of cartItems) {
+        // Update product stock with the correct quantity from updated cart items
+        for (const item of purchase.items) {
           const product = products.find((p) => p.id === item.id);
           if (product) {
             const updatedProduct = {
@@ -251,30 +272,29 @@ export default function PurchasesScreen() {
       </View>
 
       <View className="flex-1 p-4">
-        <View className="flex-1 flex-row">
-          <View className={cartItems.length > 0 ? "flex-1 mr-2" : "flex-1"}>
-            {/* Product Search Component */}
-            <ProductSearch
-              onProductSelect={addToCart}
-              products={products}
-              isLoading={isLoading}
-            />
-          </View>
-
-          {cartItems.length > 0 && (
-            <View className="w-[45%]">
-              {/* Cart Component */}
-              <POSCart
-                items={cartItems}
-                onUpdateQuantity={updateQuantity}
-                onRemoveItem={(id) => updateQuantity(id, 0)}
-                onCheckout={handleCheckout}
-                onClearCart={clearCart}
-              />
-            </View>
-          )}
+        <View className="flex-1">
+          {/* Product Search Component */}
+          <ProductSearch
+            onProductSelect={addToCart}
+            onCartIconPress={() => {
+              if (cartItems.length === 0) {
+                Alert.alert(
+                  "Keranjang Kosong",
+                  "Tambahkan produk ke keranjang terlebih dahulu",
+                );
+                return;
+              }
+              handleCheckout();
+            }}
+            products={products}
+            isLoading={isLoading}
+            cartItemCount={cartItems.length}
+            activeRoute="/purchases"
+          />
         </View>
       </View>
+
+      {/* Cart display removed as requested */}
 
       {/* Checkout Modal */}
       <CheckoutModal

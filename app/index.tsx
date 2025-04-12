@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Stack } from "expo-router";
+import { ShoppingCart } from "lucide-react-native";
 import ProductSearch from "./components/ProductSearch";
 import POSCart from "./components/POSCart";
 import CheckoutModal from "./components/CheckoutModal";
@@ -131,10 +132,45 @@ export default function POSScreen() {
     customerInfo,
     paymentMethod,
     paymentDetails,
+    updatedItems,
   ) => {
+    // Use updated items from checkout if available
+    const itemsToUse = updatedItems || cartItems;
+    // Calculate total based on updated items
+    const total = itemsToUse.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    // Check if this is being called from a redirect
+    const params = router.current?.params;
+    if (params?.completeTransaction === "true") {
+      try {
+        // Use cart items from params
+        const paramsCartItems = JSON.parse(params.cartItems as string);
+        if (paramsCartItems && paramsCartItems.length > 0) {
+          setCartItems(paramsCartItems);
+        }
+
+        // Use customer info from params
+        if (params.customerInfo) {
+          customerInfo = JSON.parse(params.customerInfo as string);
+        }
+
+        // Use payment details from params if available
+        if (params.paymentDetails) {
+          paymentDetails = JSON.parse(params.paymentDetails as string);
+        }
+
+        // Use payment method from params
+        if (params.paymentMethod) {
+          paymentMethod = params.paymentMethod;
+        }
+      } catch (error) {
+        console.error("Error parsing transaction data from params:", error);
+      }
+    }
     try {
-      // Calculate total
-      const total = calculateTotal();
+      // Total is already calculated above
 
       // Create transaction object
       const transaction = {
@@ -143,8 +179,11 @@ export default function POSScreen() {
         customerName: customerInfo.name,
         customerPhone: customerInfo.phone,
         customerAddress: customerInfo.address,
-        items: cartItems,
-        total,
+        items: itemsToUse,
+        total: itemsToUse.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0,
+        ), // Recalculate total with updated quantities
         paymentMethod,
         status: "completed" as const,
         cashReceived: paymentDetails?.cashReceived || undefined,
@@ -155,13 +194,13 @@ export default function POSScreen() {
       const success = await addTransaction(transaction);
 
       if (success) {
-        // Update product stock
-        for (const item of cartItems) {
+        // Update product stock with the correct quantity from updated cart items
+        for (const item of transaction.items) {
           const product = products.find((p) => p.id === item.id);
           if (product) {
             const updatedProduct = {
               ...product,
-              stock: product.stock - item.quantity,
+              stock: Math.max(0, product.stock - item.quantity),
             };
             await updateProduct(updatedProduct);
           }
@@ -211,30 +250,29 @@ export default function POSScreen() {
       />
 
       <View className="flex-1 p-4">
-        <View className="flex-1 flex-row">
-          <View className={cartItems.length > 0 ? "flex-1 mr-2" : "flex-1"}>
-            {/* Product Search Component */}
-            <ProductSearch
-              onProductSelect={addToCart}
-              products={products}
-              isLoading={isLoading}
-            />
-          </View>
-
-          {cartItems.length > 0 && (
-            <View className="w-[45%]">
-              {/* Cart Component */}
-              <POSCart
-                items={cartItems}
-                onUpdateQuantity={updateQuantity}
-                onRemoveItem={(id) => updateQuantity(id, 0)}
-                onCheckout={handleCheckout}
-                onClearCart={clearCart}
-              />
-            </View>
-          )}
+        <View className="flex-1">
+          {/* Product Search Component */}
+          <ProductSearch
+            onProductSelect={addToCart}
+            onCartIconPress={() => {
+              if (cartItems.length === 0) {
+                Alert.alert(
+                  "Keranjang Kosong",
+                  "Tambahkan produk ke keranjang terlebih dahulu",
+                );
+                return;
+              }
+              handleCheckout();
+            }}
+            products={products}
+            isLoading={isLoading}
+            cartItemCount={cartItems.length}
+            activeRoute="/"
+          />
         </View>
       </View>
+
+      {/* Floating Cart Button removed */}
 
       {/* Checkout Modal */}
       <CheckoutModal
